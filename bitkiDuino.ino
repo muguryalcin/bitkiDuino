@@ -1,28 +1,32 @@
+//KUTUPHANELER
 #include <Wire.h>
 #include <SFE_BMP180.h>
 #include "DHT.h" //DHT Kütüphanesini dahil ediyoruz
 
+//DEGISKENLER
 #define NEM_1 A0 //1.Nem Sensörünün pini
 #define NEM_2 A1 //2. Nem sensörünün pini
 #define DHTPIN 2 //DHT sensörünün pini
 #define DHTTYPE DHT22 //DHT sensörünün türü
 #define ALTITUDE 100 //İstanbuldaki rakım değeri
+#define motor_pin 9
 
+int sulanma_suresi = 4;
+int aradaki_bekleme = 7;
 int ortalama_nem = 0;
 int nem_1_deger = 0;
 int nem_2_deger = 0;
-int calisma_siniri = 0; // Sulama için gerekli olan sulama sınırı
+int calisma_siniri = 400;
+int kritik_sinir = 100;
 int yapilanTahmin = 0;
 unsigned long eskiZaman=0;
 unsigned long yeniZaman;
 unsigned long defZaman =7200000;
 int devirSayisi = 1;
-//7 200 000
 /*
  Eğer yapılan tahmin 0 ise tahmin yapılmamıştır veya yağış yoktur.
  Eğer yapılan tahmin 1 ise yağmur yağacaktır.
  Eğer yapılan tahmin 2 ise kar yağacaktır.
-
 */
 DHT dht(DHTPIN,DHTTYPE);
 SFE_BMP180 bmp180;
@@ -31,6 +35,7 @@ void setup() {
   // Serial Ekranı Çalıştır
   Serial.begin(9600);
   dht.begin();
+  pinMode(motor_pin , OUTPUT);
   bmp180.begin();
   tahminYap();
 }
@@ -79,12 +84,29 @@ void loop() {
   Serial.println(ortalama_nem);
   Serial.println("--------------------");
 
-  if(yeniZaman-eskiZaman >= devirSayisi*defZaman){
-      Serial.println("Tahmin yapılıyor");
+  if(yeniZaman-eskiZaman >= defZaman){
       tahminYap();
+      Serial.println("Tahmin yapılıyor");
+      Serial.println("Yeni tahmin bundan sonra goruntulenecek");
       yeniZaman = millis();
       eskiZaman = yeniZaman;
       devirSayisi++;
+  }
+  if(yeniZaman <= 1000 && yeniZaman >= 0 ){
+    devirSayisi = 1;
+  }
+  if(ortalama_nem < calisma_siniri){
+    if(ortalama_nem <= kritik_sinir){
+      digitalWrite(motor_pin,HIGH);
+      delay(sulanma_suresi*1000);
+      digitalWrite(motor_pin,LOW);
+      delay(aradaki_bekleme*1000);
+    }else if(yapilanTahmin == 0 && ortalama_nem < calisma_siniri){
+      digitalWrite(motor_pin,HIGH);
+      delay(sulanma_suresi*1000);
+      digitalWrite(motor_pin,LOW);
+      delay(aradaki_bekleme*1000);
+    }
   }
 }
 
