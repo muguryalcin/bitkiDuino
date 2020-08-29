@@ -1,2 +1,2 @@
 # bitkiDuino
-Plant watering system with Arduino for competition.
+Plant watering system with Arduino for the competition.
